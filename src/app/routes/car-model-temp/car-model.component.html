@@ -1,0 +1,260 @@
+<div class="car-model-wrap" [ngClass]="status.editInfo">
+  <!-- 当模型还未上传时的站位 -->
+  <div class="model-placeholder" *ngIf="status.isShowModelUpload">
+    <div class="placeholder-wrap">
+      <div class="icon-cloud-upload">
+        <i nz-icon type="cloud-upload" theme="outline"></i>
+      </div>
+      <div class="placeholder-tip">暂无模型数据，请先上传模型</div>
+      <div class="placeholder-remark">
+        系统支持的文件上传格式为rvt，模型大小不超过2G
+      </div>
+      <div class="hander">
+        <button nz-button nzType="primary" (click)="uploadRouter()">模型列表</button>
+      </div>
+    </div>
+  </div>
+  <!-- <div class="model-container" id="j-model-container" [ngClass]="status.taskLoaded ? 'active' : ''"></div> -->
+  <div class="model-container" id="j-model-container" [ngClass]="'active'"></div>
+  <!-- <nz-spin class="model-loading" 
+    [nzTip]='status.taskLoading'
+    *ngIf="!status.taskLoaded"
+    [nzSpinning]="!status.taskLoaded"></nz-spin> -->
+  <!-- 搜索框 -->
+  <div class="search-box-wrap" *ngIf="status.panelStatus[status.leftMenusActive]">
+    <!-- <input type="text" class="search-box-inp" 
+      [(ngModel)]="status.modelDirectorysKerWord" 
+      (keyup)="entryQueryDirectorys($event)" 
+      placeholder="搜索原件名称" />
+    <input type="button" class="search-box-btn" (click)="queryModelDirectorysPagedList()" value="搜索" /> -->
+    <nz-input-group nzSearch [nzSuffix]="suffixButton">
+      <input type="text" nz-input placeholder="搜索原件名称"
+        (keyup)="keyupEvent($event)"
+        [(ngModel)]="operationStatus.filter"  />
+    </nz-input-group>
+    <ng-template #suffixButton>
+      <button nz-button nzType="primary" nzSearch  (click)="searchEvent()">搜索</button>
+    </ng-template>
+  </div>
+
+  <!-- 菜单 -->
+  <div class="menu-aside">
+    <a href="javascript:;" class="menu-item box-shadow"
+      *ngFor="let menu of status.leftMenus"
+      ngClass="{{menu.isActive ? 'active' : ''}}"
+      (click)="lmenuClick(menu)"
+      [title]="menu.text">
+      <i class="icon icon-car" ngClass="{{menu.icon}}"></i>
+      <label class="item-text">{{menu.text}}</label>
+    </a>
+  </div>
+
+  <!-- 信息面板 -->
+  <div class="information-panel box-shadow zzj-scrollbar"
+    *ngIf="status.panelStatus1" style="max-height: 80%;overflow: auto;">
+    <nz-spin [nzTip]="operationStatus.loadingTip" [nzSpinning]="operationStatus.isLoading">
+      <div class="menu-item"
+        *ngFor="let item of status.propertyArys;let idx=index;"
+        ngClass="{{item.isActive ? 'active' : ''}}">
+        <div class="menu-item-title" [title]="item.name" (click)="openHandler(item, idx)">
+          <i class="icon-menu"></i>{{item.name}}
+        </div>
+        <div class="menu-item-cont cont-property">
+          <div class="menu-cont-wrap property"
+            *ngIf="item.data">
+            <span class="cont-rows"
+              *ngFor="let dataItem of item.data;">
+              <label class="rows-label hidden-row" [title]="dataItem.name">
+                {{dataItem.name}}
+              </label>
+              <label class="rows-value hidden-row" [title]="(dataItem.value?dataItem.value.value:'')+(dataItem.value ? dataItem.value.unit : '')">
+                {{dataItem.value ? dataItem.value.value : ''}}{{dataItem.value ? dataItem.value.unit : ''}}
+              </label>
+              <a href="javascript:;" class="look-file"
+                *ngIf="dataItem.value && dataItem.value.fileId"
+                style="float: right;margin-right: 10px;"
+                (click)="lookFile(dataItem)">查看</a>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="no-item" *ngIf="(status.propertyArys ? (!status.propertyArys.length ? true : false) : false)">
+        <div class="menu-item-title">暂无数据</div>
+      </div>
+      <i nz-icon type="form" class="nz-icon-edit" title="编辑"
+        *ngIf="status.pageAuthorty.Edit && (status.propertyArys.length ? status.propertyArys[0] : {}).isEdit != false"
+        (click)="editInfo(status.propertyArys[0])"></i>
+      <a href="javascript:;" class="panel-close" title="关闭" (click)="closePanelEvent('panelStatus1')"></a>
+    </nz-spin>
+  </div>
+
+  <!-- 车身系统 -->
+  <div class="information-panel box-shadow"
+    *ngIf="status.panelStatus[status.leftMenusActive]"
+    style="right: initial;left: 150px;">
+    <div class="menu-item full active">
+      <div class="menu-item-title">
+        <i class="icon-menu"></i>车身系统
+      </div>
+      <div class="menu-item-cont zzj-scrollbar">
+        <div class="menu-cont-wrap zzj-scrollbar" style="margin-left: 15px;">
+          <nz-tree
+            #treeCom
+            nzCheckable="true"
+            nzShowIcon="true"
+            [nzExpandedKeys]="status.defaultExpandedKeys"
+            [nzCheckedKeys]="status.defaultCheckedKeys"
+            [nzSelectedKeys]="status.defaultSelectedKeys"
+            [nzData]="nodes"
+            (nzClick)="nzTreeClick($event)"
+            (nzCheckBoxChange)="nzTreeCheck($event)">
+          </nz-tree>
+        </div>
+      </div>
+    </div>
+    <a href="javascript:;" class="panel-close" title="关闭" (click)="closeStatusPanelEvent('icon-car')"></a>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="tools-bar">
+    <div class="tools-bar-wrap">
+
+      <div class="tools-bar-block box-shadow" 
+        *ngFor="let group of status.modelTools;let gIdx = index;">
+        <a href="javascript:;"
+          class="tools-bar-item"
+          *ngFor="let groupItem of group;let itemIdx = index;"
+          ngClass="{{groupItem.isActive ? 'active' : ''}}"
+          [title]="groupItem.title"
+          (click)="toolsItemClick(groupItem, gIdx, itemIdx)">
+          <i class="icon" ngClass="{{groupItem.icon}}" *ngIf="!groupItem.type"></i>
+          <i nz-icon class="icon no-icon" *ngIf="groupItem.type" [type]="groupItem.type"></i>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="info-edit-panel">
+    <div class="edit-panel-hd">
+      编辑性能参数
+      <a href="javascript:;" class="panel-hd-close" title="关闭" (click)="closeInfoEdit($event)">X</a>
+    </div>
+    <div class="edit-panel-bd">
+      <div class="property-list">
+        <components-custom-drag #customDrag
+          [isSetLeft]="false"
+          [dragBeginEvent]="dragBeginEvent"
+          [dragMoveEvent]="dragMoveEvent"
+          [dragEndEvent]="dragEndEvent.bind(this)">
+          <div name="drag-child">
+            <div class="property-item"
+              [ngClass]="aryItem.expanded ? 'active' : ''"
+              id="{{aryItem.id}}"
+              *ngFor="let aryItem of status.propertyArys">
+              <div class="property-item-title">
+                <i nz-icon [type]="aryItem.expanded ? 'caret-down' : 'caret-right'" theme="outline" (click)="propertyFolder(aryItem)"></i>
+                <!-- <label nz-checkbox [(ngModel)]="aryItem.checked">{{aryItem.name}}</label> -->
+                <label class="j-drag-child">{{aryItem.name}}</label>
+                <i nz-icon type="delete"  class="nz-icon-del" title="删除属性"
+                  *ngIf="status.pageAuthorty.Delete"
+                  (click)="deleteAttribute(aryItem)"></i>
+                <i nz-icon type="form"  class="nz-icon-del" title="编辑属性"
+                  *ngIf="status.pageAuthorty.Edit"
+                  (click)="editAttributeDirectory(aryItem)"></i>
+              </div>
+              <div class="item-attr-wrap">
+                <div class="attr-list-wrap"
+                  (click)="editAttribute($event, aryItem, dataItem)"
+                  *ngFor="let dataItem of aryItem.data;let diIdx = index;">
+                  <span class="attr-text" [title]="dataItem.name">{{dataItem.name}}
+                    <!-- <input type="text" class="attr-inp" [(ngModel)]="dataItem.text" placeholder="点击输入" /> -->
+                  </span>
+                  <span class="attr-value" [title]="dataItem.value ? (dataItem.value.value || '') : ''">
+                    {{dataItem.value ? dataItem.value.value : ''}}{{dataItem.value ? dataItem.value.unit : ''}}
+                    <!-- <input type="text" class="attr-inp" [(ngModel)]="dataItem.value" placeholder="点击输入" /> -->
+                  </span>
+                  <span class="attr-del">
+                    <a class="del-btn" (click)="deleteAttributeItem(aryItem, dataItem, diIdx)"
+                      *ngIf="status.pageAuthorty.Delete"
+                      title="删除">-</a>
+                  </span>
+                </div>
+                <div class="attr-list-wrap ft-add"
+                  *ngIf="status.pageAuthorty.Create"
+                  (click)="addAttribute(aryItem, dataItem)" title="点击添加">
+                  <i nz-icon type="plus" theme="outline"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </components-custom-drag>
+        <!-- <div class="property-item property-item-add" (click)="addAttributeDirectory()" title="增加属性">
+          <i nz-icon type="plus" theme="outline"></i>
+        </div> -->
+      </div>
+    </div>
+    <div class="edit-panel-ft">
+      <button nz-button nzType="primary"
+        *ngIf="status.pageAuthorty.Create"
+        (click)="addAttributeDirectory()">增加属性</button>
+      <!-- <button nz-button nzType="primary" (click)="saveAttribute()">保存</button>
+      <span class="ft-btn-more">
+        <button nz-button nzType="default" (click)="addAttributeDirectory()">增加属性</button>
+        <button nz-button nzType="default" (click)="deleteAttribute()">删除属性</button>
+      </span> -->
+    </div>
+  </div>
+
+</div>
+
+<!-- 添加、修改 -->
+<nz-modal [(nzVisible)]="operationStatus.modal.operationModalStatus" [nzContent]="addModalContent"
+    [nzFooter]="operationStatus.modal.isShowModalFooter ? addModalFooter : null"
+    (nzOnCancel)="operationCloseModal('operationModalStatus')"
+    [nzMaskClosable]="false"
+    [nzTitle]="operationStatus.modal.operationModalTitle">
+    <ng-template #addModalContent>
+      <components-custom-forms 
+        [formData]="operationStatus.modal.customFormInfoModel"
+        [disabledForm]="operationStatus.modelDisabled"
+        (onSelectChange)="selectChange($event)"
+        (onUploadFileChange)="uploadFileChange($event)"
+        (onUploadFileSuccess)="uploadFileSuccess($event)"
+        (onUploadFileRemove)="uploadFileRemove($event)"
+        *ngIf="status.isResetRender != false"
+        #customForms>
+      </components-custom-forms>
+    </ng-template>
+    <ng-template #addModalFooter>
+      <button nz-button 
+        *ngIf="operationStatus.modal.sureButton"
+        [nzType]="operationStatus.modal.sureButton.type || 'primary'"
+        [disabled]="operationStatus.modelDisabled"
+        (click)="operationSubmitModal()">
+        {{operationStatus.modelDisabled ? (operationStatus.modelDisabled == 1 ? operationStatus.modal.sureButton.text : operationStatus.modal.sureButton.submitText) : operationStatus.modal.sureButton.text}}
+      </button>
+      <button nz-button 
+        *ngIf="operationStatus.modal.resetButton"
+        [nzType]="operationStatus.modal.resetButton.type || 'default'"
+        [disabled]="operationStatus.modelDisabled"
+        (click)="operationResetModal()">
+        {{operationStatus.modelDisabled ? operationStatus.modal.resetButton.submitText : operationStatus.modal.resetButton.text}}
+      </button>
+    </ng-template>
+  </nz-modal>
+  
+  <!-- 弹出框（预览文件） -->
+  <nz-modal [(nzVisible)]="status.preview.isVisible" [nzContent]="previewModalContent"
+    [nzFooter]="previewModalFooter"
+    [nzWidth]="status.preview.width"
+    (nzOnCancel)="status.preview.isVisible = !status.preview.isVisible"
+    [nzTitle]="status.preview.title">
+    <ng-template #previewModalContent>
+      <iframe class="preview-iframe" #previewFrame></iframe>
+    </ng-template>
+    <ng-template #previewModalFooter>
+      <button nz-button nzType="primary"
+        (click)="status.preview.isVisible = !status.preview.isVisible">确定</button>
+    </ng-template>
+  </nz-modal>
